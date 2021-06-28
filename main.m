@@ -47,10 +47,14 @@ clearvars -except pixel_EMIS pixel_RGB pixel_R pixel_G pixel_B pixel_NLCD pixel_
 %% classify region based on EMIS, RGB, and NLCD
 %partition into vegetation and snow clusters using kmeans
 EMIS_class = reshape(kmeans(pixel_EMIS(:),3),size(pixel_EMIS));
-RGB_class = reshape(kmeans([pixel_R(:) pixel_G(:) pixel_B(:)],2),size(pixel_RGB,[1 2]));
+RGB_class = reshape(kmeans([pixel_R(:) pixel_G(:) pixel_B(:)],3),size(pixel_RGB,[1 2]));
 
 
 %% Compute estimated proportional coverages
-
-
-
+D = RGB_class(~isnan(RGB_class));
+D_unique = unique(D);
+for i = 1:length(D_unique)
+    class_i = D_unique(i);
+    p = (sum(D == class_i,'all')/sum(~isnan(D),'all'));
+    disp(['% of area in class ' num2str(class_i) ': ' num2str(p*100,4) '%'])
+end
