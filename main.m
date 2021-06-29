@@ -3,11 +3,6 @@ clear
 clc
 
 %% Inputs
-%if single pixel just input single value
-pixel_TIR = 274.78;
-%individual temperature components from drone imagery
-T_tree = 1.62 + 273.15;
-T_snow = -2.52 + 273.15;
 
 % temporally matched Landsat emissivity data
 EMIS_scaleFactor = 0.0001;
@@ -22,14 +17,8 @@ blue_path = '/Volumes/GRA_Data_Backup/DroneTIR_MicroclimFT/Data/subPixel_investi
 green_path = '/Volumes/GRA_Data_Backup/DroneTIR_MicroclimFT/Data/subPixel_investigations/MODIS/LC08_SR_B3_MODIS_c.tif';
 red_path = '/Volumes/GRA_Data_Backup/DroneTIR_MicroclimFT/Data/subPixel_investigations/MODIS/LC08_SR_B4_MODIS_c.tif';
 
-% path to recent NLCD data
-NLCD_scaleFactor = 1;
-NLCD_fill = 0;
-NLCD_path = '/Volumes/GRA_Data_Backup/DroneTIR_MicroclimFT/Data/subPixel_investigations/MODIS/NLCD_MODIS_c.tif';
 
-
-
-%read in data
+%% read in data
 pixel_EMIS = TIFformat(EMIS_path,EMIS_fill,EMIS_scaleFactor,0);
 %combines RBG into single 3D matrix, where layer 1 = red, 2 = green, 3 = blue
 pixel_R = TIFformat(red_path,RGB_fill,RGB_scaleFactor,RGB_additiveSF);
@@ -39,22 +28,16 @@ pixel_RGB = NaN([size(pixel_R) 3]);
 pixel_RGB(:,:,1) = pixel_R;
 pixel_RGB(:,:,2) = pixel_G;
 pixel_RGB(:,:,3) = pixel_B;
-pixel_NLCD = TIFformat(NLCD_path,NLCD_fill,NLCD_scaleFactor,0);
 
 %clean up workspace
 clearvars -except pixel_EMIS pixel_RGB pixel_R pixel_G pixel_B pixel_NLCD pixel_TIR T_tree T_snow
 
-%% classify region based on EMIS, RGB, and NLCD
-%partition into vegetation and snow clusters using kmeans
-EMIS_class = reshape(kmeans(pixel_EMIS(:),3),size(pixel_EMIS));
-RGB_class = reshape(kmeans([pixel_R(:) pixel_G(:) pixel_B(:)],3),size(pixel_RGB,[1 2]));
-
-
-%% Compute estimated proportional coverages
-D = RGB_class(~isnan(RGB_class));
-D_unique = unique(D);
-for i = 1:length(D_unique)
-    class_i = D_unique(i);
-    p = (sum(D == class_i,'all')/sum(~isnan(D),'all'));
-    disp(['% of area in class ' num2str(class_i) ': ' num2str(p*100,4) '%'])
-end
+%% classify region based on EMIS and RGB. AND calculate proportional coverages
+[classEMIS_KM_2,propEMIS_KM_2] = createClassifier(pixel_EMIS,'kmeans',2);
+[classEMIS_KM_3,propEMIS_KM_3] = createClassifier(pixel_EMIS,'kmeans',3);
+[classRGB_KM_2,propRGB_KM_2] = createClassifier(pixel_RGB,'kmeans',2);
+[classRGB_KM_3,propRGB_KM_3] = createClassifier(pixel_RGB,'kmeans',3);
+[classEMIS_T0,propEMIS_T0] = createClassifier(pixel_EMIS,'threshold',.99);
+[classEMIS_T1,propEMIS_T1] = createClassifier(pixel_EMIS,'threshold',.98);
+[classEMIS_T2,propEMIS_T2] = createClassifier(pixel_EMIS,'threshold',.97);
+[classEMIS_T3,propEMIS_T3] = createClassifier(pixel_EMIS,'threshold',.96);
